@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    
+    <title>Pyro JS</title>
+    
+    <link rel="stylesheet" type="text/css" href="pyro.css">
+    <script src ="./constants.js"></script>
+    <script src ="./helpers.js"></script>
+    <script src ="./tile.js"></script>
+    <script src ="./level.js"></script>
+    <script src ="./maze.js"></script>
+    <script src ="./player.js"></script>
+    <script src="./game.js"></script>
+    <script>
+        
+        var TIME_TO_LIGHT_FUSE_IN_MS = 10000;
+        var TICK_RATE = 200;
+        
+        function getKeyPress(e) {
+            
+            if (window.instance === null) {
+                return;
+            }
+            
+            switch (e.keyCode) {
+                case 65: window.instance.player.setDirection('west'); break;                // a
+                case 68: window.instance.player.setDirection('east'); break;                // d
+                case 87: window.instance.player.setDirection('north'); break;               // w
+                case 83: window.instance.player.setDirection('south'); break;               // s
+                case 81: window.instance.player.pickUpGasCan(window.instance.level); break; // q
+                case 69: window.instance.player.dropGasCan(window.instance.level); break;   // e
+            }
+        }
+        
+        function drawGame(canvas, game) {
+            
+            var context = canvas.getContext("2d");
+            var tileWidth = canvas.width / game.width;
+            var tileHeight = canvas.height / game.height;
+        
+            for (var i = 0; i < game.height; ++i) {
+                for (var j = 0; j < game.width; ++j) {
+                    context.fillStyle = game.level[i][j].getColour();
+                    context.fillRect(i * tileHeight, j * tileWidth, tileHeight, tileWidth);
+                }
+            }
+        }
+        
+        function drawPlayer(canvas, game) {
+            
+            if (!game.player.isAlive || game.player.isFinished) {
+                return;
+            }
+            
+            var context = canvas.getContext("2d");
+            var tileWidth = canvas.width / game.width;
+            var tileHeight = canvas.height / game.height;
+            var occupied = getOccupiedTiles(game.level, game.player.centerX, game.player.centerY);
+            
+            context.fillStyle = "#FFAAAA";
+            for (var i = 0; i < occupied.length; ++i) {
+                context.fillRect(occupied[i].row * tileHeight, occupied[i].col * tileWidth, tileHeight, tileWidth);
+            }
+            
+            context.fillStyle = "#00FF00";
+            switch (game.player.gasCans) {
+                case 4:
+                    context.fillRect(occupied[8].row * tileHeight, occupied[8].col * tileWidth, tileHeight, tileWidth);
+                case 3:
+                    context.fillRect(occupied[6].row * tileHeight, occupied[6].col * tileWidth, tileHeight, tileWidth);
+                case 2:
+                    context.fillRect(occupied[2].row * tileHeight, occupied[2].col * tileWidth, tileHeight, tileWidth);
+                case 1:
+                    context.fillRect(occupied[0].row * tileHeight, occupied[0].col * tileWidth, tileHeight, tileWidth);
+                    break;
+            }
+        }
+        
+        
+        function playGame(levels) {
+            
+            var canvas = document.getElementById("gameBoard");
+            var levelIndex = 0;
+            var gameRunning = false;
+            window.instance = null;
+            window.addEventListener('keydown', getKeyPress, false);
+
+            var tickFn = setInterval(function() {
+                
+                if (gameRunning) {
+                    gameRunning = window.instance.tick();
+                    drawGame(canvas, window.instance);
+                    drawPlayer(canvas, window.instance);                    
+                }
+                else {
+                    var maze = new Maze(5, 5);
+                    var level;
+                    maze.generate();
+                    console.info(maze.toString());
+                    level = maze.getLevel();
+                    var exits = getExits(level);
+                    var startPos = getStartPositionWRTExits(level, exits);
+                    window.instance = new Game(level, startPos.r, startPos.c);
+                    gameRunning = true;
+                    setTimeout(function() {
+                        window.instance.level[window.instance.startRow][window.instance.startCol].base = 'fire';
+                    }, TIME_TO_LIGHT_FUSE_IN_MS);                    
+                }
+            }, TICK_RATE);
+        }
+        
+        window.onload = function()
+        {
+            playGame([/* testLevel */]);
+        }
+    </script>
+</head>
+<body>
+    <canvas id="gameBoard" class="solo" width="300" height="300">
+        We're terribly sorry. but your browser is tooooo old. 
+        Try the original DOS version, k?
+    </canvas>
+</body>
+</html>

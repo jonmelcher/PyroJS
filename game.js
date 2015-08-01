@@ -10,18 +10,17 @@
 //  summary:    constructor
 //  parameters: level (2D array of tile objects), startX, startY (player centre)
 // *****************************************************************************
-function Game(level, startRow, startCol) {
+function Game(height, width) {
     
-    this.level = level ? level : getEmptyLevel(DFLT_LVL_DIM, DFLT_LVL_DIM);
-    this.width = this.level[0].length;
-    this.height = this.level.length;
-    this.startRow = startRow;
-    this.startCol = startCol;
+    this.level = new Level(height, width);
+    this.width = this.level.width;
+    this.height = this.level.height;
+    this.startRow = this.level.start.r;
+    this.startCol = this.level.start.c;
     this.ticks = 0;
-    this.player = isValidCoordinate(startRow, startCol, this.width, this.height) ?
-                                new Player(startRow, startCol) : new Player(2, 2);
-    this.wallNumber = this.level.reduce(function(a, b) { return a.concat(b) })
-                                .reduce(function(acc, b) { return b.base === 'wall' ? ++acc : acc }, 0);
+    this.player = new Player(this.startRow, this.startCol);
+    this.wallNumber = this.level.tiles.reduce(function(a, b) { return a.concat(b) })
+                                      .reduce(function(acc, b) { return b.base === 'wall' ? ++acc : acc }, 0);
 }
 
 // *****************************************************************************
@@ -35,21 +34,21 @@ Game.prototype.tick = function() {
     this.ticks++;
     
     if (this.player.isAlive && !this.player.isFinished) {
-        this.player.move(this.level);
+        this.player.move(this.level.tiles);
         if (this.ticks % 2 === 0) {
             this.spreadSpreadables();
         }
-        this.player.refreshStatus(this.level);
+        this.player.refreshStatus(this.level.tiles);
     }
     else if (this.player.isAlive) {
-        this.level[this.startRow][this.startCol].base = 'fire';
+        this.level.tiles[this.startRow][this.startCol].base = 'fire';
         this.player.isAlive = false;
     }
-    else if (isOnFire(this.level)) {
+    else if (isOnFire(this.level.tiles)) {
         this.spreadSpreadables();
     }
     else {
-        this.player.addScore(this.level, this.wallNumber);
+        this.player.addScore(this.level.tiles, this.wallNumber);
         console.log(this.player.score);
         return false;
     }
@@ -61,9 +60,9 @@ Game.prototype.tick = function() {
 //  summary:    setter for .level[x][y].base
 //  parameters: level, x, y (location), terrain (what to set .base to)
 // *****************************************************************************
-Game.prototype.setTerrain = function(x, y, terrain) {
-    if (isValidCoordinate(x, y, this.width, this.height)) {
-        this.level[x][y].base = terrain || "";
+Game.prototype.setTerrain = function(row, col, terrain) {
+    if (isValidCoordinate(row, col, this.width, this.height)) {
+        this.level.tiles[row][col].base = terrain || "";
     }
 }
 
@@ -95,16 +94,16 @@ Game.prototype.explosion = function(x, y, maxDistance) {
         if (isValidCoordinate(shiftX, shiftY, this.width, this.height) &&
             Math.sqrt(Math.pow(shiftX - baseX, 2) + Math.pow(shiftY - baseY, 2)) < maxDistance + 1) {
             
-            if (this.level[shiftX][shiftY].base === 'gasCan') {
+            if (this.level.tiles[shiftX][shiftY].base === 'gasCan') {
                 this.explosion(shiftX, shiftY, maxDistance);
             }
-            else if (this.level[shiftX][shiftY].base !== 'exit') {
-                this.level[shiftX][shiftY].spreadInto('fire');
+            else if (this.level.tiles[shiftX][shiftY].base !== 'exit') {
+                this.level.tiles[shiftX][shiftY].spreadInto('fire');
             }
         }
     }.bind(this);
     
-    this.level[shiftX][shiftY].spreadInto('fire');
+    this.level.tiles[shiftX][shiftY].spreadInto('fire');
     
     while (distance < maxDistance + 1) {
         
@@ -183,15 +182,15 @@ Game.prototype.spreadSpreadables = function() {
         if (!tile.spreadTo) {
             switch (tile.base) {
                 case 'fire':
-                    this.spreadFire(this.level, i, j);
+                    this.spreadFire(this.level.tiles, i, j);
                     break;
                 case 'gas':
-                    this.spreadGas(this.level, i, j);
+                    this.spreadGas(this.level.tiles, i, j);
                     break;
             }
         }
     }.bind(this);
     
-    actOnArray2D(this.level, fn);
-    actOnArray2D(this.level, function(tile) { tile.spreadTo = false });
+    actOnArray2D(this.level.tiles, fn);
+    actOnArray2D(this.level.tiles, function(tile) { tile.spreadTo = false });
 }

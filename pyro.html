@@ -9,8 +9,8 @@
     <script src ="./constants.js"></script>
     <script src ="./helpers.js"></script>
     <script src ="./tile.js"></script>
-    <script src ="./level.js"></script>
     <script src ="./maze.js"></script>
+    <script src ="./level.js"></script>
     <script src ="./player.js"></script>
     <script src="./game.js"></script>
     <script>
@@ -29,8 +29,8 @@
                 case 68: window.instance.player.setDirection('east'); break;                // d
                 case 87: window.instance.player.setDirection('north'); break;               // w
                 case 83: window.instance.player.setDirection('south'); break;               // s
-                case 81: window.instance.player.pickUpGasCan(window.instance.level); break; // q
-                case 69: window.instance.player.dropGasCan(window.instance.level); break;   // e
+                case 81: window.instance.player.pickUpGasCan(window.instance.level.tiles); break; // q
+                case 69: window.instance.player.dropGasCan(window.instance.level.tiles); break;   // e
             }
         }
         
@@ -42,7 +42,7 @@
         
             for (var i = 0; i < game.height; ++i) {
                 for (var j = 0; j < game.width; ++j) {
-                    context.fillStyle = game.level[i][j].getColour();
+                    context.fillStyle = game.level.tiles[i][j].getColour();
                     context.fillRect(i * tileHeight, j * tileWidth, tileHeight, tileWidth);
                 }
             }
@@ -57,7 +57,7 @@
             var context = canvas.getContext("2d");
             var tileWidth = canvas.width / game.width;
             var tileHeight = canvas.height / game.height;
-            var occupied = getOccupiedTiles(game.level, game.player.centerX, game.player.centerY);
+            var occupied = getOccupiedTiles(game.level.tiles, game.player.centerX, game.player.centerY);
             
             context.fillStyle = "#FFAAAA";
             for (var i = 0; i < occupied.length; ++i) {
@@ -95,17 +95,10 @@
                     drawPlayer(canvas, window.instance);                    
                 }
                 else {
-                    var maze = new Maze(5, 5);
-                    var level;
-                    maze.generate();
-                    console.info(maze.toString());
-                    level = maze.getLevel();
-                    var exits = getExits(level);
-                    var startPos = getStartPositionWRTExits(level, exits);
-                    window.instance = new Game(level, startPos.r, startPos.c);
+                    window.instance = new Game(25, 25);
                     gameRunning = true;
                     setTimeout(function() {
-                        window.instance.level[window.instance.startRow][window.instance.startCol].base = 'fire';
+                        window.instance.level.tiles[window.instance.startRow][window.instance.startCol].base = 'fire';
                     }, TIME_TO_LIGHT_FUSE_IN_MS);                    
                 }
             }, TICK_RATE);

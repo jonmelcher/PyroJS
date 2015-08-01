@@ -8,7 +8,7 @@
 // *****************************************************************************
 //  function:   Player
 //  summary:    constructor
-//  parameters: startRow, startCol (location of center of player on level)
+//  parameters: startRow, startCol (location of center of player on tiles)
 // *****************************************************************************
 function Player(startRow, startCol) {
     this.reset(startRow, startCol, true);
@@ -38,35 +38,35 @@ Player.prototype.reset = function(startRow, startCol, isCompleteReset) {
 
 // *****************************************************************************
 //  function:   addScore
-//  summary:    calculates ratio of walls left in level to an original number,
+//  summary:    calculates ratio of walls left in tiles to an original number,
 //              and adjusts Players score according to the ratio
-//  parameters: level
+//  parameters: tiles
 //              originalWallNumber
-//  notes:      when level is turned into a Level object it will likely
+//  notes:      when tiles is turned into a tiles object it will likely
 //              encapsulate the originalWallNumber argument
 // *****************************************************************************
-Player.prototype.addScore = function(level, originalWallNumber) {
+Player.prototype.addScore = function(tiles, originalWallNumber) {
     
-    var wallsLeft = level.reduce(function(a, b) { return a.concat(b) })
-                         .reduce(function(acc, b) { return b.base === 'wall' ? ++acc : acc }, 0);
+    var wallsLeft = tiles.tiles.reduce(function(a, b) { return a.concat(b) })
+                               .reduce(function(acc, b) { return b.base === 'wall' ? ++acc : acc }, 0);
     var ratio = wallsLeft / (originalWallNumber || 1);
     
-    this.score += (ratio === 0 ? TOTAL_LEVEL_POINTS * 2 : Math.floor(ratio * TOTAL_LEVEL_POINTS));
+    this.score += (ratio === 0 ? TOTAL_tiles_POINTS * 2 : Math.floor(ratio * TOTAL_tiles_POINTS));
 }
 
 // *****************************************************************************
 //  function:   move
 //  summary:    changes player's position if necessary and updates player and
-//              level properties
+//              tiles properties
 //  parameters: none
 // *****************************************************************************
-Player.prototype.move = function(level) {
+Player.prototype.move = function(tiles) {
     
     this.isMoving = this.isAlive && !this.isFinished && this.direction
-                                            && this.isValidMove(level);
+                                            && this.isValidMove(tiles);
     
     if (this.isMoving) {
-        this.setFuse(level);
+        this.setFuse(tiles);
         this.shiftCenter();        
     }
 }
@@ -84,9 +84,9 @@ Player.prototype.setDirection = function(direction) {
 // *****************************************************************************
 //  function:   getMoveTerrain
 //  summary:    gets Tiles where player would move to in next tick
-//  parameters: level
+//  parameters: tiles
 // *****************************************************************************
-Player.prototype.getMoveTerrain = function(level) {
+Player.prototype.getMoveTerrain = function(tiles) {
     
     var moveTerrain = [];
     var offset = 2;
@@ -96,8 +96,8 @@ Player.prototype.getMoveTerrain = function(level) {
             offset = -2;
         case 'south':
             for (var i = -1; i < 2; ++i) {
-                if (isValidCoordinate(this.centerX + i, this.centerY + offset, level[0].length, level.length)) {
-                    moveTerrain.push(level[this.centerX + i][this.centerY + offset]);
+                if (isValidCoordinate(this.centerX + i, this.centerY + offset, tiles[0].length, tiles.length)) {
+                    moveTerrain.push(tiles[this.centerX + i][this.centerY + offset]);
                 }
             }
             break;
@@ -105,8 +105,8 @@ Player.prototype.getMoveTerrain = function(level) {
             offset = -2;
         case 'east':
             for (var i = -1; i < 2; ++i) {
-                if (isValidCoordinate(this.centerX + offset, this.centerY + i, level[0].length, level.length)) {
-                    moveTerrain.push(level[this.centerX + offset][this.centerY + i]);
+                if (isValidCoordinate(this.centerX + offset, this.centerY + i, tiles[0].length, tiles.length)) {
+                    moveTerrain.push(tiles[this.centerX + offset][this.centerY + i]);
                 }
             }
             break;
@@ -127,11 +127,11 @@ Player.prototype.isTouching = function(x, y) {
 // *****************************************************************************
 //  function:   isValidMove
 //  summary:    checks if the next tick's player move is valid
-//  parameters: level
+//  parameters: tiles
 // *****************************************************************************
-Player.prototype.isValidMove = function(level) {
+Player.prototype.isValidMove = function(tiles) {
     
-    var moveTerrain = this.getMoveTerrain(level);
+    var moveTerrain = this.getMoveTerrain(tiles);
     
     for (var i = 0; i < moveTerrain.length; ++i) {
         switch (moveTerrain[i].base){
@@ -146,13 +146,13 @@ Player.prototype.isValidMove = function(level) {
 
 // *****************************************************************************
 //  function:   pickUpGasCan
-//  summary:    checks the area of the level occupied by the player for gascans
+//  summary:    checks the area of the tiles occupied by the player for gascans
 //              and if the player has room picks them up
-//  parameters: level
+//  parameters: tiles
 // *****************************************************************************
-Player.prototype.pickUpGasCan = function(level) {
+Player.prototype.pickUpGasCan = function(tiles) {
     
-    var occupied = getOccupiedTiles(level, this.centerX, this.centerY);
+    var occupied = getOccupiedTiles(tiles, this.centerX, this.centerY);
     var fn = function(tile) {
         if (tile.base === 'gascan' && this.gasCans < MAX_GAS_CANS) {
             ++this.gasCans;
@@ -168,16 +168,16 @@ Player.prototype.pickUpGasCan = function(level) {
 //  summary:    checks if tile that player's center occupies contains a gascan,
 //              and if not either (drops gas can - not moving) or spills gas due
 //              to movement
-//  parameters: level
-//  notes:      will yield inaccurate values if player is off of level at all
+//  parameters: tiles
+//  notes:      will yield inaccurate values if player is off of tiles at all
 // *****************************************************************************
-Player.prototype.dropGasCan = function(level) {
+Player.prototype.dropGasCan = function(tiles) {
     
     if (!this.gasCans) {
         return;
     }
     
-    var occupied = getOccupiedTiles(level, this.centerX, this.centerY);
+    var occupied = getOccupiedTiles(tiles, this.centerX, this.centerY);
     var t;
     
     switch (this.gasCans) {
@@ -201,39 +201,39 @@ Player.prototype.dropGasCan = function(level) {
 
 // *****************************************************************************
 //  function:   kill
-//  summary:    updates player properties and level to reflect player
+//  summary:    updates player properties and tiles to reflect player
 //              being killed
-//  parameters: level, occupied (area on level player resides in)
+//  parameters: tiles, occupied (area on tiles player resides in)
 // *****************************************************************************
-Player.prototype.kill = function(level, occupied) {
+Player.prototype.kill = function(tiles, occupied) {
     
     this.isAlive = false;
     this.isMoving = false;
     
     while (this.gasCans) {
-        this.dropGasCan(level);
+        this.dropGasCan(tiles);
     }    
     occupied.forEach(function(tile) { if (tile.base !== 'gascan') tile.base = 'fire' });
 }
 
 // *****************************************************************************
 //  function:   refreshStatus
-//  summary:    checks if player has died or finished the game and updates level
+//  summary:    checks if player has died or finished the game and updates tiles
 //              and player properties accordingly
-//  parameters: level
+//  parameters: tiles
 // *****************************************************************************
-Player.prototype.refreshStatus = function(level) {
+Player.prototype.refreshStatus = function(tiles) {
     
-    var occupied = getOccupiedTiles(level, this.centerX, this.centerY);
+    var occupied = getOccupiedTiles(tiles, this.centerX, this.centerY);
     
     for (var i = 0; i < occupied.length; ++i) {
         switch (occupied[i].base) {
             case 'fire':
-                this.kill(level, occupied);
+                this.kill(tiles, occupied);
                 break;
             case 'exit':
                 this.isFinished = true;
-                this.setFuse(level);
+                this.setFuse(tiles);
                 return;
         }
     }
@@ -243,14 +243,14 @@ Player.prototype.refreshStatus = function(level) {
 //  function:   setFuse
 //  summary:    sets fuse at player's center (when movement occurs, player will
 //              trail a fuse behind them)
-//  parameters: level
+//  parameters: tiles
 // *****************************************************************************
-Player.prototype.setFuse = function(level) {
+Player.prototype.setFuse = function(tiles) {
 
-    switch (level[this.centerX][this.centerY].base) {
+    switch (tiles[this.centerX][this.centerY].base) {
         case 'gas':
         case 'none':
-            level[this.centerX][this.centerY].base = 'fuse';
+            tiles[this.centerX][this.centerY].base = 'fuse';
             break;
     }    
 }

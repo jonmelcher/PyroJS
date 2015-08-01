@@ -20,6 +20,19 @@ function actOnArray2D(array2D, action) {
     }
 }
 
+function actOnSquare(array2D, row, col, squareSize, action) {
+
+    var offset = Math.floor(squareSize / 2);
+    for (i = -offset; i < offset + 1; ++i) {
+        for (j = -offset; j < offset + 1; ++j) {
+            if (isValidCoordinate(row + i, col + j, array2D[0].length, array2D.length)) {
+                action(array2D[row + i][col + j], row + i, row + j, array2D);
+            }
+        }
+    }
+}
+
+
 // *****************************************************************************
 //  function:   searchArray2D
 //  purpose:    apply a search function to each element of an array, returning
@@ -94,3 +107,4 @@ function getOpposingDirection(direction) {
 function isValidCoordinate(row, col, width, height) {
     return row >= 0 && row < height && col >= 0 && col < width;
 }
+

@@ -30,22 +30,39 @@ function Level(height, width, settings) {
     this.start = this.getStartWRTExits(this.getExits());
 }
 
-Level.prototype.getSquare = function(row, col, squareSize) {
-
-    var occupied = [];
-
-    actOnSquare(this.tiles, row, col, squareSize, function(tile) { occupied.push(tile) });
-    return occupied;
-}
-
 // *****************************************************************************
-//  function:   isOnFire
-//  summary:    checks if any tiles in the level have a .base of 'fire'
-//  parameters: none
+//  INITIAL LEVEL CREATION / POPULATION
 // *****************************************************************************
-Level.prototype.isOnFire = function() {
-    return searchArray2D(this.tiles, 0, 0, function(tile) {
-        return tile.base === 'fire'}) !== undefined;
+
+Level.prototype.applyWalls = function(grid) {
+
+    var _applyWalls = function(row, col, offset, wallsAreEastWest) {
+        
+        if (wallsAreEastWest) {
+            for (var k = 0; k < MAZE_CELL_TO_GAME_TILE_RATIO; ++k) {
+                this.tiles[row + k][col + offset].base = 'wall';
+            }
+        }
+        else {
+            for (var k = 0; k < MAZE_CELL_TO_GAME_TILE_RATIO; ++k) {
+                this.tiles[row + offset][col + k].base = 'wall';
+            }
+        }
+    }.bind(this);
+    var fn = function(cell, row, col) {
+        
+        var offset;
+        for (var k = 0; k < COMPASS.length; ++k) {
+            if (cell[COMPASS[k]]) {
+                offset = k > 1 ? MAZE_CELL_TO_GAME_TILE_RATIO - 1 : 0;
+                _applyWalls(row * MAZE_CELL_TO_GAME_TILE_RATIO,
+                            col * MAZE_CELL_TO_GAME_TILE_RATIO,
+                                          offset, k % 2 !== 0);
+            }
+        }
+    };
+    
+    actOnArray2D(grid, fn);    
 }
 
 // *****************************************************************************
@@ -62,51 +79,6 @@ Level.prototype.applyGasCans = function(probability) {
     }
     
     actOnArray2D(this.tiles, fn);    
-}
-
-// *****************************************************************************
-//  function:   getStart
-//  summary:    picks a random 3x3 'none' Tile grid to place the player on and
-//              yields its center location
-//  parameters: none
-//  notes:      return is an anonymous object {r: (row), c: (col)}
-// *****************************************************************************
-Level.prototype.getStart = function() {
-
-    var row = 1 + Math.floor(Math.random() *
-                (Math.round(this.height / MAZE_CELL_TO_GAME_TILE_RATIO) - 2));
-    var col = 1 + Math.floor(Math.random() *
-             (Math.round(this.width / MAZE_CELL_TO_GAME_TILE_RATIO) - 2));
-    var location = {r: row * MAZE_CELL_TO_GAME_TILE_RATIO + 2,
-                    c: col * MAZE_CELL_TO_GAME_TILE_RATIO + 2};
-
-    return location;
-}
-
-// *****************************************************************************
-//  function:   getStartWRTExits
-//  summary:    finds a start position with minimum distance from the list of
-//              exit locations
-//  parameters: exits - array of anonymous locations {r: (row), c: (col)} where
-//                      an 'exit' Tile is found
-//  notes:      return is an anonymous object {r: (row), c: (col)}
-// *****************************************************************************
-Level.prototype.getStartWRTExits = function(exits) {
-
-    var minDistance = Math.min(this.width, this.height) / 2;
-    var isDistant;
-    var fn = function(acc, exit) {
-        return Math.min(acc, Math.sqrt(
-            Math.pow(exit.r - start.r, 2) + Math.pow(exit.c - start.c, 2)));
-    };
-
-    do {
-        var start = this.getStart();
-        var distance = exits.reduce(fn, Infinity);
-        isDistant = distance > minDistance;
-    }
-    while (!isDistant);
-    return start;
 }
 
 // *****************************************************************************
@@ -130,28 +102,6 @@ Level.prototype.applyStrongWalls = function() {
     this.tiles[this.height - 1][this.width - 1].base = 'strongwall';
     this.tiles[this.height - 1][this.width - 2].base = 'strongwall';
     this.tiles[this.height - 2][this.width - 1].base = 'strongwall';
-}
-
-// *****************************************************************************
-//  function:   getExits
-//  summary:    retrieves an array of locations of 'exit' .base Tiles
-//  parameters: none
-//  notes:      return is an array of anonymous objects {r: (row), c: (col)}
-// *****************************************************************************
-Level.prototype.getExits = function() {
-
-    var exits = [];
-    var exitLocation;
-
-    var fn = function(tile, row, col) {
-        if (tile.base === 'exit') {
-            exitLocation = {r: row, c: col};
-            exits.push(exitLocation);
-        }
-    }
-
-    actOnArray2D(this.tiles, fn);
-    return exits;
 }
 
 // *****************************************************************************
@@ -195,33 +145,98 @@ Level.prototype.applyExit = function() {
     }
 }
 
-Level.prototype.applyWalls = function(grid) {
+// *****************************************************************************
+//  function:   getStart
+//  summary:    picks a random 3x3 'none' Tile grid to place the player on and
+//              yields its center location
+//  parameters: none
+//  notes:      return is an anonymous object {r: (row), c: (col)}
+// *****************************************************************************
+Level.prototype.getStart = function() {
 
-    var _applyWalls = function(row, col, offset, wallsAreEastWest) {
-        
-        if (wallsAreEastWest) {
-            for (var k = 0; k < MAZE_CELL_TO_GAME_TILE_RATIO; ++k) {
-                this.tiles[row + k][col + offset].base = 'wall';
-            }
+    var row = 1 + Math.floor(Math.random() *
+                (Math.round(this.height / MAZE_CELL_TO_GAME_TILE_RATIO) - 2));
+    var col = 1 + Math.floor(Math.random() *
+             (Math.round(this.width / MAZE_CELL_TO_GAME_TILE_RATIO) - 2));
+    var location = {r: row * MAZE_CELL_TO_GAME_TILE_RATIO + 2,
+                    c: col * MAZE_CELL_TO_GAME_TILE_RATIO + 2};
+
+    return location;
+}
+
+// *****************************************************************************
+//  function:   getExits
+//  summary:    retrieves an array of locations of 'exit' .base Tiles
+//  parameters: none
+//  notes:      return is an array of anonymous objects {r: (row), c: (col)}
+// *****************************************************************************
+Level.prototype.getExits = function() {
+
+    var exits = [];
+    var exitLocation;
+
+    var fn = function(tile, row, col) {
+        if (tile.base === 'exit') {
+            exitLocation = {r: row, c: col};
+            exits.push(exitLocation);
         }
-        else {
-            for (var k = 0; k < MAZE_CELL_TO_GAME_TILE_RATIO; ++k) {
-                this.tiles[row + offset][col + k].base = 'wall';
-            }
-        }
-    }.bind(this);
-    var fn = function(cell, row, col) {
-        
-        var offset;
-        for (var k = 0; k < COMPASS.length; ++k) {
-            if (cell[COMPASS[k]]) {
-                offset = k > 1 ? MAZE_CELL_TO_GAME_TILE_RATIO - 1 : 0;
-                _applyWalls(row * MAZE_CELL_TO_GAME_TILE_RATIO,
-                            col * MAZE_CELL_TO_GAME_TILE_RATIO,
-                                          offset, k % 2 !== 0);
-            }
-        }
+    }
+
+    actOnArray2D(this.tiles, fn);
+    return exits;
+}
+
+// *****************************************************************************
+//  function:   getStartWRTExits
+//  summary:    finds a start position with minimum distance from the list of
+//              exit locations
+//  parameters: exits - array of anonymous locations {r: (row), c: (col)} where
+//                      an 'exit' Tile is found
+//  notes:      return is an anonymous object {r: (row), c: (col)}
+// *****************************************************************************
+Level.prototype.getStartWRTExits = function(exits) {
+
+    var minDistance = Math.min(this.width, this.height) / 2;
+    var isDistant;
+    var fn = function(acc, exit) {
+        return Math.min(acc, Math.sqrt(
+            Math.pow(exit.r - start.r, 2) + Math.pow(exit.c - start.c, 2)));
     };
-    
-    actOnArray2D(grid, fn);    
+
+    do {
+        var start = this.getStart();
+        var distance = exits.reduce(fn, Infinity);
+        isDistant = distance > minDistance;
+    }
+    while (!isDistant);
+    return start;
+}
+
+// *****************************************************************************
+//  HELPERS
+// *****************************************************************************
+
+// *****************************************************************************
+//  function:   getSquare
+//  summary:    retrieves the square of the given size about the given row/col
+//  parameters: row
+//              col
+//              squareSize
+// *****************************************************************************
+Level.prototype.getSquare = function(row, col, squareSize) {
+
+    var occupied = [];
+
+    actOnSquare(this.tiles, row, col, squareSize, function(tile) { occupied.push(tile) });
+    return occupied;
+}
+
+// *****************************************************************************
+//  function:   isOnFire
+//  summary:    checks if any tiles in the level have a .base of 'fire'
+//  parameters: none
+// *****************************************************************************
+Level.prototype.isOnFire = function() {
+    return searchArray2D(this.tiles, 0, 0, function(tile) {
+        return tile.base === 'fire'}) !== undefined;
 }

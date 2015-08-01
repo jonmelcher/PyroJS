@@ -46,8 +46,7 @@ function Maze(height, width) {
     
     this.height = height;
     this.width = width;
-    this.grid = createArray2D(
-        height, width, function(i, j) { return new Cell(i, j) });
+    this.grid = createArray2D(height, width, function(i, j) { return new Cell(i, j) });
 }
 
 // *****************************************************************************
@@ -67,25 +66,6 @@ Maze.prototype.toString = function() {
             }
         }).join("");
     }).join("\n");
-}
-
-// *****************************************************************************
-//  function:   getLevel
-//  purpose:    convert Maze.grid to the format of level - each Cell is composed
-//              of many Tiles with different properties (.base = 'wall'/'none')
-//  parameters: none
-// *****************************************************************************
-Maze.prototype.getLevel = function() {
-    
-    var level = createArray2D(this.height * MAZE_CELL_TO_GAME_TILE_RATIO,
-                               this.width * MAZE_CELL_TO_GAME_TILE_RATIO,
-                               function(i, j) {return new Tile(i, j, 'none') });
-    
-    this.applyWalls(level);
-    applyGasCans(level, GAS_CAN_PROBABILITY);
-    applyStrongWalls(level);
-    applyExit(level);
-    return level;
 }
 
 // *****************************************************************************
@@ -155,48 +135,6 @@ Maze.prototype.removeWall = function(cell) {
     if (opposingCell !== undefined) {
         opposingCell[getOpposingDirection(cell.direction)] = false;
     }
-}
-
-// *****************************************************************************
-//  function:   applyWalls
-//  summary:    helper function for mapping .grid to level format
-//              maps each wall of a Cell in the correct Tiles
-//  parameters: level
-// *****************************************************************************
-Maze.prototype.applyWalls = function(level) {
-    
-    if (level.length !== this.height * MAZE_CELL_TO_GAME_TILE_RATIO
-        || level[0].length !== this.width * MAZE_CELL_TO_GAME_TILE_RATIO) {
-        throw "error: incompatible level size";
-    }
-    
-    var _applyWalls = function(i, j, offset, wallsAreEastWest) {
-        
-        if (wallsAreEastWest) {
-            for (var k = 0; k < MAZE_CELL_TO_GAME_TILE_RATIO; ++k) {
-                level[i + k][j + offset].base = 'wall';
-            }
-        }
-        else {
-            for (var k = 0; k < MAZE_CELL_TO_GAME_TILE_RATIO; ++k) {
-                level[i + offset][j + k].base = 'wall';
-            }
-        }
-    }
-    var fn = function(cell, i, j) {
-        
-        var offset;
-        for (var k = 0; k < COMPASS.length; ++k) {
-            if (cell[COMPASS[k]]) {
-                offset = k > 1 ? MAZE_CELL_TO_GAME_TILE_RATIO - 1 : 0;
-                _applyWalls(i * MAZE_CELL_TO_GAME_TILE_RATIO,
-                            j * MAZE_CELL_TO_GAME_TILE_RATIO,
-                                        offset, k % 2 !== 0);
-            }
-        }
-    };
-    
-    actOnArray2D(this.grid, fn);
 }
 
 // *****************************************************************************
@@ -288,6 +226,8 @@ Maze.prototype.generate = function() {
     }
     
     this.removeDuplicateWalls();
+
+    // this should be a function of size probably
     for (var i = 0; i < 15; ++i) {
         this.removeRandomInsideWall();
     }

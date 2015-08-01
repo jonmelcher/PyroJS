@@ -107,4 +107,3 @@ function getOpposingDirection(direction) {
 function isValidCoordinate(row, col, width, height) {
     return row >= 0 && row < height && col >= 0 && col < width;
 }
-

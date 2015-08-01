@@ -6,6 +6,7 @@
     <title>Pyro JS</title>
     
     <link rel="stylesheet" type="text/css" href="pyro.css">
+    <script src="./physics.js"></script>
     <script src ="./constants.js"></script>
     <script src ="./helpers.js"></script>
     <script src ="./tile.js"></script>
@@ -29,8 +30,8 @@
                 case 68: window.instance.player.setDirection('east'); break;                // d
                 case 87: window.instance.player.setDirection('north'); break;               // w
                 case 83: window.instance.player.setDirection('south'); break;               // s
-                case 81: window.instance.player.pickUpGasCan(window.instance.level.tiles); break; // q
-                case 69: window.instance.player.dropGasCan(window.instance.level.tiles); break;   // e
+                case 81: window.instance.player.pickUpGasCan(window.instance.level); break; // q
+                case 69: window.instance.player.dropGasCan(window.instance.level); break;   // e
             }
         }
         

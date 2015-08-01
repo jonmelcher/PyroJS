@@ -57,7 +57,7 @@
             var context = canvas.getContext("2d");
             var tileWidth = canvas.width / game.width;
             var tileHeight = canvas.height / game.height;
-            var occupied = getOccupiedTiles(game.level.tiles, game.player.centerX, game.player.centerY);
+            var occupied = game.level.getSquare(game.player.centerX, game.player.centerY, PLAYER_SIZE);
             
             context.fillStyle = "#FFAAAA";
             for (var i = 0; i < occupied.length; ++i) {

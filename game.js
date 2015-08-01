@@ -19,8 +19,6 @@ function Game(height, width) {
     this.startCol = this.level.start.c;
     this.ticks = 0;
     this.player = new Player(this.startRow, this.startCol);
-    this.wallNumber = this.level.tiles.reduce(function(a, b) { return a.concat(b) })
-                                      .reduce(function(acc, b) { return b.base === 'wall' ? ++acc : acc }, 0);
 }
 
 // *****************************************************************************
@@ -44,26 +42,15 @@ Game.prototype.tick = function() {
         this.level.tiles[this.startRow][this.startCol].base = 'fire';
         this.player.isAlive = false;
     }
-    else if (isOnFire(this.level.tiles)) {
+    else if (this.level.isOnFire()) {
         this.spreadSpreadables();
     }
     else {
-        this.player.addScore(this.level.tiles, this.wallNumber);
+        this.player.addScore(this.level.tiles, this.level.wallNumber);
         console.log(this.player.score);
         return false;
     }
     return true;
-}
-
-// *****************************************************************************
-//  name:       .setTerrain
-//  summary:    setter for .level[x][y].base
-//  parameters: level, x, y (location), terrain (what to set .base to)
-// *****************************************************************************
-Game.prototype.setTerrain = function(row, col, terrain) {
-    if (isValidCoordinate(row, col, this.width, this.height)) {
-        this.level.tiles[row][col].base = terrain || "";
-    }
 }
 
 // *****************************************************************************
@@ -129,10 +116,10 @@ Game.prototype.explosion = function(x, y, maxDistance) {
 //              can also call .explosion if 'gascan' is encountered
 //  parameters: level, x, y (location of 'fire' tile)
 // *****************************************************************************
-Game.prototype.spreadFire = function(level, x, y) {
+Game.prototype.spreadFire = function(row, col) {
     
     var fireSpreadProbability = BASE_FIRE_SPREAD_PROBABILITY;
-    var occupied = getOccupiedTiles(level, x, y);
+    var occupied = this.level.getSquare(row, col, PLAYER_SIZE);
     var fn = function(tile) {
         
         tile.trySetFire(fireSpreadProbability, this.player);
@@ -145,7 +132,7 @@ Game.prototype.spreadFire = function(level, x, y) {
     occupied.forEach(fn);
     
     if (Math.random() > FIRE_PERSISTENCE_PROBABILITY) {
-        level[x][y].base = 'none';
+        this.level.tiles[row][col].base = 'none';
     }
 }
 
@@ -155,10 +142,10 @@ Game.prototype.spreadFire = function(level, x, y) {
 //              uses .spreadTo to prevent over-spreading during .tick()
 //  parameters: level, x, y (location of 'gas' tile)
 // *****************************************************************************
-Game.prototype.spreadGas = function(level, x, y) {
+Game.prototype.spreadGas = function(row, col) {
     
     var gasSpreadProbability = BASE_GAS_SPREAD_PROBABILITY;
-    var occupied = getOccupiedTiles(level, x, y);
+    var occupied = this.level.getSquare(row, col, PLAYER_SIZE);
     var fn = function(tile) {
         if (tile.base === 'none' && Math.random() < gasSpreadProbability) {
             tile.spreadInto('gas');
@@ -177,15 +164,15 @@ Game.prototype.spreadGas = function(level, x, y) {
 // *****************************************************************************
 Game.prototype.spreadSpreadables = function() {
     
-    var fn = function(tile, i, j) {
+    var fn = function(tile, row, col) {
         
         if (!tile.spreadTo) {
             switch (tile.base) {
                 case 'fire':
-                    this.spreadFire(this.level.tiles, i, j);
+                    this.spreadFire(row, col);
                     break;
                 case 'gas':
-                    this.spreadGas(this.level.tiles, i, j);
+                    this.spreadGas(row, col);
                     break;
             }
         }

@@ -13,11 +13,8 @@
     <script src ="./maze.js"></script>
     <script src ="./level.js"></script>
     <script src ="./player.js"></script>
-    <script src="./game.js"></script>
+    <script src="./pyro.js"></script>
     <script>
-        
-        var TIME_TO_LIGHT_FUSE_IN_MS = 10000;
-        var TICK_RATE = 200;
         
         function getKeyPress(e) {
             
@@ -35,38 +32,35 @@
             }
         }
         
-        function drawGame(canvas, game) {
+        function drawGame(canvas, gameInstance) {
             
             var context = canvas.getContext("2d");
-            var tileWidth = canvas.width / game.width;
-            var tileHeight = canvas.height / game.height;
-        
-            for (var i = 0; i < game.height; ++i) {
-                for (var j = 0; j < game.width; ++j) {
-                    context.fillStyle = game.level.tiles[i][j].getColour();
-                    context.fillRect(i * tileHeight, j * tileWidth, tileHeight, tileWidth);
-                }
-            }
+            var tileWidth = canvas.width / gameInstance.level.width;
+            var tileHeight = canvas.height / gameInstance.level.height;
+            var fn = function(tile, i, j) {
+                context.fillStyle = tile.getColour();
+                context.fillRect(i * tileHeight, j * tileWidth, tileHeight, tileWidth);
+            };
+            
+            actOnArray2D(gameInstance.level.tiles, fn);
         }
         
-        function drawPlayer(canvas, game) {
+        function drawPlayer(canvas, gameInstance) {
             
-            if (!game.player.isAlive || game.player.isFinished) {
+            if (!gameInstance.player.isAlive || gameInstance.player.isFinished) {
                 return;
             }
             
             var context = canvas.getContext("2d");
-            var tileWidth = canvas.width / game.width;
-            var tileHeight = canvas.height / game.height;
-            var occupied = game.level.getSquare(game.player.centerX, game.player.centerY, PLAYER_SIZE);
+            var tileWidth = canvas.width / gameInstance.level.width;
+            var tileHeight = canvas.height / gameInstance.level.height;
+            var occupied = gameInstance.level.getSquare(gameInstance.player.centerX, gameInstance.player.centerY, PLAYER_SIZE);
             
             context.fillStyle = "#FFAAAA";
-            for (var i = 0; i < occupied.length; ++i) {
-                context.fillRect(occupied[i].row * tileHeight, occupied[i].col * tileWidth, tileHeight, tileWidth);
-            }
+            occupied.forEach(function(tile) { context.fillRect(tile.row * tileHeight, tile.col * tileWidth, tileHeight, tileWidth) });
             
             context.fillStyle = "#00FF00";
-            switch (game.player.gasCans) {
+            switch (gameInstance.player.gasCans) {
                 case 4:
                     context.fillRect(occupied[8].row * tileHeight, occupied[8].col * tileWidth, tileHeight, tileWidth);
                 case 3:
@@ -79,42 +73,59 @@
             }
         }
         
+        function updateText(element, text) {
+            element.innerHTML = text;
+        }
         
-        function playGame(levels) {
+        function playGame() {
             
             var canvas = document.getElementById("gameBoard");
-            var levelIndex = 0;
-            var gameRunning = false;
-            window.instance = null;
+            window.instance = new Pyro();
             window.addEventListener('keydown', getKeyPress, false);
 
             var tickFn = setInterval(function() {
                 
-                if (gameRunning) {
-                    gameRunning = window.instance.tick();
+                if (window.instance.levelRunning) {
+                    window.instance.levelRunning = window.instance.tick();
                     drawGame(canvas, window.instance);
                     drawPlayer(canvas, window.instance);                    
                 }
-                else {
-                    window.instance = new Game(25, 25);
-                    gameRunning = true;
+                else if (!window.instance.player.gameOver){
+                    window.instance.startNewLevel(30, 30);
+                    updateText(document.getElementById("level"), window.instance.levelNumber);
                     setTimeout(function() {
-                        window.instance.level.tiles[window.instance.startRow][window.instance.startCol].base = 'fire';
+                        window.instance.level.tiles[window.instance.level.start.r][window.instance.level.start.c].base = 'fire';
                     }, TIME_TO_LIGHT_FUSE_IN_MS);                    
                 }
+                else {
+                    updateText(document.getElementById("gameover"), "GAME OVER");
+                }
+                updateText(document.getElementById("score"), window.instance.player.score);
             }, TICK_RATE);
         }
         
         window.onload = function()
         {
-            playGame([/* testLevel */]);
+            resize()
+            playGame();
         }
+        
+        function resize() {
+            document.body.className = (innerHeight - innerWidth > 0 ? "portrait" : "landscape");
+        }
+        window.onresize = resize;
     </script>
 </head>
 <body>
-    <canvas id="gameBoard" class="solo" width="300" height="300">
-        We're terribly sorry. but your browser is tooooo old. 
-        Try the original DOS version, k?
-    </canvas>
+    <div id="wrap">
+        <div class="top_or_left">
+            <center><h2>PYRO</h2>INSTRUCTIONS:<br>WSAD - MOVEMENT<br>Q - PICK UP GAS CAN<br>E - DROP/SPILL GAS CAN<br><br> 
+            LEVEL: <span id = "level">1</span><br>SCORE: <span id="score">0</span><br><span id ="gameover"></span></center><br>
+        </div>
+        <canvas id="gameBoard" class="solo" width="300" height="300">
+            We're terribly sorry. but your browser is tooooo old. 
+            Try the original DOS version, k?
+        </canvas>
+    </div>
 </body>
 </html>

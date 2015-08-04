@@ -228,7 +228,7 @@ Maze.prototype.generate = function() {
     this.removeDuplicateWalls();
 
     // this should be a function of size probably
-    for (var i = 0; i < 15; ++i) {
+    for (var i = 0; i < Math.floor(this.height * this.width * WALL_REMOVAL_RATIO); ++i) {
         this.removeRandomInsideWall();
     }
 }

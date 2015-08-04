@@ -7,13 +7,28 @@ html, body {
 body {
     background-color: black;
     text-align: center;
+    color: #FFFF00;
+    
 }
 
-canvas {
+body.portrait .top_or_left, body.portrait .bottom_or_right {
     display: block;
-    margin: 0 auto;
+    width: 20%;
 }
 
-canvas.solo {
-    height: 100%;
+body.portrait canvas {
+    display: block;
+    width: 50%;
+}
+
+body.landscape .top_or_left, body.landscape .bottom_or_right {
+    display: inline-block;
+    vertical-align: top;
+    padding: 5em;
+    width: 10%;
+}
+
+body.landscape canvas {
+    display: inline-block;
+    width: 50%;
 }

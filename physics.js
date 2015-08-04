@@ -1,13 +1,17 @@
 // *****************************************************************************
 //  name:       getSpreadAdjustment
 //  summary:    determines amount to add to a spread probability based on the
-//              number of similar terrain in a 3x3 square
+//              number of similar terrain in a square
 //  parameters: occupied (PLAYER_SIZE^2)
 //              terrain
 //              adj (amount to add per similar terrain)
 // *****************************************************************************
 function getSpreadAdjustment(occupied, terrain, adj) {
     return occupied.reduce(function (acc, tile) { return tile.base === terrain ? acc + adj : acc }, 0);    
+}
+
+function getExplosionRadius() {
+    return MIN_EXPLOSION_RADIUS + Math.floor(Math.random() * (MAX_EXPLOSION_RADIUS - MIN_EXPLOSION_RADIUS));
 }
 
 // *****************************************************************************
@@ -30,7 +34,7 @@ function explosion(level, row, col, maxDistance) {
         if (isValidCoordinate(shiftRow, shiftCol, level.width, level.height) &&
             Math.sqrt(Math.pow(shiftRow - baseRow, 2) + Math.pow(shiftCol - baseCol, 2)) < maxDistance + 1) {
             if (level.tiles[shiftRow][shiftCol].base === 'gasCan') {
-                explosion(shiftRow, shiftCol, maxDistance);
+                explosion(shiftRow, shiftCol, getExplosionRadius());
             }
             else if (level.tiles[shiftRow][shiftCol].base !== 'exit') {
                 level.tiles[shiftRow][shiftCol].spreadInto('fire');
@@ -74,7 +78,7 @@ function spreadFire(level, player, row, col) {
         
         tile.trySetFire(fireSpreadProbability, player);
         if (tile.base === 'gascan') {
-            explosion(level, tile.row, tile.col, EXPLOSION_RADIUS);
+            explosion(level, tile.row, tile.col, getExplosionRadius());
         }
     };
 

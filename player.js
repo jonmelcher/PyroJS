@@ -30,6 +30,7 @@ Player.prototype.reset = function(startRow, startCol, isCompleteReset) {
     this.isAlive = true;
     this.isMoving = false;
     this.isFinished = false;
+    this.gameOver = false;
     if (isCompleteReset) {
         this.gasCans = 0;
         this.score = 0;
@@ -51,7 +52,7 @@ Player.prototype.addScore = function(level, originalWallNumber) {
                                .reduce(function(acc, b) { return b.base === 'wall' ? ++acc : acc }, 0);
     var ratio = wallsLeft / (originalWallNumber || 1);
     
-    this.score += (ratio === 0 ? TOTAL_tiles_POINTS * 2 : Math.floor(ratio * TOTAL_tiles_POINTS));
+    this.score += (ratio < 0.01 ? TOTAL_LEVEL_POINTS * 2 : Math.floor((1 - ratio) * TOTAL_LEVEL_POINTS));
 }
 
 // *****************************************************************************
@@ -132,16 +133,11 @@ Player.prototype.isTouching = function(row, col) {
 Player.prototype.isValidMove = function(level) {
     
     var moveTerrain = this.getMoveTerrain(level);
+    var isValid = moveTerrain.reduce(function(acc, b) {
+        return (acc && b.base !== 'wall' && b.base !== 'strongwall')
+    }, true);
     
-    for (var i = 0; i < moveTerrain.length; ++i) {
-        switch (moveTerrain[i].base){
-            case 'wall':
-            case 'strongwall':
-                return false;
-        }
-    }
-    
-    return moveTerrain.length !== 0;
+    return isValid && moveTerrain.length !== 0;
 }
 
 // *****************************************************************************
@@ -151,6 +147,10 @@ Player.prototype.isValidMove = function(level) {
 //  parameters: tiles
 // *****************************************************************************
 Player.prototype.pickUpGasCan = function(level) {
+    
+    if (!this.isAlive || this.isFinished) {
+        return;
+    }
     
     var occupied = level.getSquare(this.centerX, this.centerY, PLAYER_SIZE);
     var fn = function(tile) {
@@ -173,9 +173,9 @@ Player.prototype.pickUpGasCan = function(level) {
 // *****************************************************************************
 Player.prototype.dropGasCan = function(level) {
     
-    if (!this.gasCans) {
+    if (!this.isAlive || !this.gasCans) {
         return;
-    }
+    }    
     
     var occupied = level.getSquare(this.centerX, this.centerY, PLAYER_SIZE);
     var t;
@@ -207,13 +207,14 @@ Player.prototype.dropGasCan = function(level) {
 // *****************************************************************************
 Player.prototype.kill = function(level, occupied) {
     
-    this.isAlive = false;
-    this.isMoving = false;
-    
     while (this.gasCans) {
         this.dropGasCan(level);
-    }    
+    }
+    
     occupied.forEach(function(tile) { if (tile.base !== 'gascan') tile.base = 'fire' });
+    this.isAlive = false;
+    this.isMoving = false;
+    this.gameOver = true;    
 }
 
 // *****************************************************************************
